@@ -10,14 +10,15 @@ const SCOPES = ['https://www.googleapis.com/auth/spreadsheets'];
 // created automatically when the authorization flow completes for the first
 // time.
 const TOKEN_PATH = 'credentials/token.json';
-const DATA_PATH = 'data/test_cases.json';
 
-// Load client secrets from a local file.
-fs.readFile('credentials/credentials.json', (err, content) => {
-    if (err) return console.log('Error loading client secret file:', err);
-    // Authorize a client with credentials, then call the Google Sheets API.
-    authorize(JSON.parse(content), getTestCases);
-});
+function runToSpreadsheet(fn) {
+    // Load client secrets from a local file.
+    fs.readFile('credentials/credentials.json', (err, content) => {
+        if (err) return console.log('Error loading client secret file:', err);
+        // Authorize a client with credentials, then call the Google Sheets API.
+        authorize(JSON.parse(content), fn);
+    });
+}
 
 /**
  * Create an OAuth2 client with the given credentials, and then execute the
@@ -72,47 +73,26 @@ function getNewToken(oAuth2Client, callback) {
  * Returns test cases
  * @param {google.auth.OAuth2} auth The authenticated Google OAuth client.
  */
-function getTestCases(auth) {
+function updateValue(auth, cell, value) {
+    const request = {
+        spreadsheetId: process.env.SPREADSHEET_ID,
+        range: `${process.env.SPREADSHEET_TAB}!${cell}`,
+        valueInputOption: 'USER_ENTERED',
+        resource: {values: [[value]]}
+        
+    };
     const sheets = google.sheets({ version: 'v4', auth });
-    sheets.spreadsheets.values.get(
-        {
-            spreadsheetId: process.env.SPREADSHEET_ID,
-            range: `${process.env.SPREADSHEET_TAB}!A2:P`,
-        },
-        (err, res) => {
-            if (err) return console.log('The API returned an error: ' + err);
-            const rows = res.data.values;
-            if (rows.length) {
-                const testCases = rows
-                    .filter(r => r[15] === 'Yes')
-                    .map(r => ({
-                        title: r[1],
-                        steps: r[2],
-                        expected: r[3],
-                    }));
-
-                const invalidData = testCases.filter(isValid);
-
-                if (invalidData.length > 0) {
-                    console.log('Invalid data', invalidData, invalidData.length);
-                    console.log('Please check written test cases');
-                } else {
-                    fs.writeFile(DATA_PATH, JSON.stringify(testCases), err => {
-                        if (err) return console.error(err);
-                        console.log('Data stored to', DATA_PATH);
-                    });
-                }
-            } else {
-                console.log('No data found.');
-            }
+    sheets.spreadsheets.values.update(request, function(err, response) {
+        if (err) {
+            console.error(err);
+            return;
         }
-    );
-}
 
-function isValid(testCase) {
-    return testCase.title.split('\n').length === 1;
+        console.log('Successfully updated the spreadsheet!');
+    });
 }
 
 module.exports = {
-    getTestCases,
+    runToSpreadsheet,
+    updateValue,
 };

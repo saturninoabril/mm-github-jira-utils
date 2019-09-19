@@ -25,21 +25,46 @@ function createIssue(title, description) {
         });
 }
 
+function getPullRequests(repo) {
+    const octokit = new Octokit({
+        auth: process.env.GITHUB_TOKEN,
+    });
+
+    return octokit.pulls
+        .list({
+            owner: process.env.GITHUB_OWNER,
+            repo,
+            state: 'open',
+            per_page: 100,
+        })
+        .then(resp => {
+            // console.log('PR list - ', resp.data);
+            return { repo, status: resp.status, data: resp.data };
+        })
+        .catch(err => {
+            console.log('Failed to get Github list of pull request');
+            return { error: err };
+        });
+}
+
 function generateDescription(content, jiraIssueNumber) {
     return `
+
+
+${content}
+
+**Jira ticket**: [${jiraIssueNumber}](${process.env.MATTERMOST_JIRA_PROJECT_ISSUE_URL}/${jiraIssueNumber})
+
+---
 If you're interested, please comment here and come [join our "Contributors" community channel](https://community.mattermost.com/core/channels/tickets) on our daily build server, where you can discuss questions with community members and the Mattermost core team. For technical advice or questions, please  [join our "Developers" community channel](https://community.mattermost.com/core/channels/developers).
 
 
 New contributors please see our [Developer's Guide](https://developers.mattermost.com/contribute/getting-started/).
-
----
-**Notes**: [Jira ticket](${process.env.MATTERMOST_JIRA_PROJECT_ISSUE_URL}/${jiraIssueNumber})
-
-${content}
 `;
 }
 
 module.exports = {
     createIssue,
     generateDescription,
+    getPullRequests,
 };
