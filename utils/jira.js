@@ -70,6 +70,25 @@ function updateIssue(issueNumber, data) {
         });
 }
 
+function getResolvedTickets(startAt = 0, maxResults = 100) {
+    const query = `startAt=${startAt}&maxResults=${maxResults}&jql=project=MM and status=resolved&orderBy=resolutiondate`;
+
+    return axios({
+        auth: {
+            username: process.env.JIRA_USERNAME,
+            password: process.env.JIRA_TOKEN,
+        },
+        method: 'get',
+        url: `${process.env.MATTERMOST_JIRA_API_SEARCH_URL}?${query}`,
+    }).then(resp => {
+        console.log(`Successfully get resolved tickets`);
+        return { status: resp.status, data: resp.data };
+    }).catch(err => {
+        console.log(`Error getting resolved tickets`);
+        return { error: err };
+    });
+}
+
 function parseDescription(data, issueNumber) {
     let description =
         'If you\'re interested please comment here and come [join our "Contributors" community channel](https://community.mattermost.com/core/channels/tickets) on our daily build server, where you can discuss questions with community members and the Mattermost core team. For technical advice or questions, please  [join our "Developers" community channel](https://community.mattermost.com/core/channels/developers).\n\n';
@@ -112,7 +131,6 @@ function parseDescription(data, issueNumber) {
 }
 
 function generateDescription(testCase) {
-    console.log('testCase:', testCase);
     return `
 **Title:** ${testCase.title}
     
@@ -131,5 +149,6 @@ module.exports = {
     getIssue,
     generateDescription,
     parseDescription,
+    getResolvedTickets,
     updateIssue,
 };

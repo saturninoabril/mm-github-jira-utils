@@ -5,6 +5,13 @@ require('dotenv').config();
 
 const spreadsheet = require('./utils/spreadsheet.js');
 
+const {
+    SPREADSHEET_ID,
+    SPREADSHEET_TAB,
+    SPREADSHEET_ROW_START,
+    SPREADSHEET_ROW_YES,
+} = process.env;
+
 spreadsheet.runToSpreadsheet(getTestCases);
 
 // Utility functions
@@ -18,21 +25,21 @@ function getTestCases(auth) {
     const sheets = google.sheets({ version: 'v4', auth });
     sheets.spreadsheets.values.get(
         {
-            spreadsheetId: process.env.SPREADSHEET_ID,
-            range: `${process.env.SPREADSHEET_TAB}!A2:P`,
+            spreadsheetId: SPREADSHEET_ID,
+            range: `${SPREADSHEET_TAB}!A${SPREADSHEET_ROW_START}:${SPREADSHEET_ROW_YES}`,
         },
         (err, res) => {
             if (err) return console.log('The API returned an error: ' + err);
             const rows = res.data.values;
+
+            const yesIndex = SPREADSHEET_ROW_YES.charCodeAt() - 65;
             if (rows.length) {
                 const testCases = rows
                     .map((r, index) => {
                         r[r.length] = index;
                         return r;
                     })
-                    .filter((r) => {
-                        return r[15] && r[15].toLowerCase() === 'yes';
-                    })
+                    .filter(r => r[yesIndex] && r[yesIndex].toLowerCase() === 'yes')
                     .map(r => ({
                         title: r[1],
                         steps: r[2],

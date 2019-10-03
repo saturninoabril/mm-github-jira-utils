@@ -38,7 +38,6 @@ function getPullRequests(repo) {
             per_page: 100,
         })
         .then(resp => {
-            // console.log('PR list - ', resp.data);
             return { repo, status: resp.status, data: resp.data };
         })
         .catch(err => {

@@ -41,13 +41,14 @@ function groupPRsPerQA(PRs = [], repo) {
         map(pr => {
             const reviewers = getPRReviewer(pr);
             return {
-                title: pr.title,
-                url: pr.html_url,
-                labels: getPRLabel(pr),
                 author: pr.user.login,
-                reviewers,
+                labels: getPRLabel(pr),
+                milestone: pr.milestone ? pr.milestone.title : '',
                 qa_reviewer: getQAReviewer(reviewers),
                 repo,
+                reviewers,
+                title: pr.title,
+                url: pr.html_url,
             }
         }).
         sort((a, b) => {
@@ -67,7 +68,8 @@ function groupPRsPerQA(PRs = [], repo) {
 function generateTemplate(repo, totalPR, qaPRs) {
     const lines = [];
     qaPRs.forEach((pr) => {
-        const line = `- (${pr.qa_reviewer.length > 0 ? pr.qa_reviewer.join(', ') : ':point_up:'}) [${pr.title}](${pr.url})`;
+        const milestone = pr.milestone ? `[${pr.milestone}]` : '';
+        const line = `- (${pr.qa_reviewer.length > 0 ? pr.qa_reviewer.join(', ') : ':point_up:'}) [${pr.title}](${pr.url}) ${milestone} `;
         lines.push(line);
     });
 

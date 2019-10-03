@@ -6,6 +6,15 @@ const spreadsheet = require('./utils/spreadsheet.js');
 
 require('dotenv').config();
 
+const {
+    SPREADSHEET_KEY,
+    TEST_FOLDER,
+    SPREADSHEET_ROW_START,
+    SPREADSHEET_ROW_TEST_KEY,
+    SPREADSHEET_ROW_HW_TICKET,
+    MATTERMOST_JIRA_PROJECT_ISSUE_URL,
+} = process.env;
+
 // Load test cases from data/test_cases.json
 fs.readFile('data/test_cases.json', (err, content) => {
     if (err) return console.log('Error loading data/test_cases.json:', err);
@@ -20,10 +29,12 @@ fs.readFile('data/test_cases.json', (err, content) => {
         jira.createIssue(title, jiraIssueDescription).then(result => {
             if (result.data && result.data.key) {
                 const issueNumber = result.data.key;
-                const key = process.env.SPREADSHEET_KEY + result.data.key.split('-')[1];
+                const key = SPREADSHEET_KEY + result.data.key.split('-')[1];
                 const testKey = `**Test Key:** ${key}\n`;
+                const testFolder = '**Test folder:** ' + '`' + TEST_FOLDER + '`';
+
                 const githubIssueDescription = github.generateDescription(
-                    testKey + jiraIssueDescription,
+                    [testKey, testFolder, jiraIssueDescription].join('\n'),
                     issueNumber
                 );
 
@@ -41,13 +52,14 @@ fs.readFile('data/test_cases.json', (err, content) => {
                         jira.updateIssue(issueNumber, data);
 
                         console.log('Updating Google spreadsheet');
-                        const row = testCases[index].row_number + 2;
+
+                        const row = testCases[index].row_number + parseInt(SPREADSHEET_ROW_START, 10);
 
                         // Update Cypress Test Key
-                        spreadsheet.runToSpreadsheet((auth) => spreadsheet.updateValue(auth, `P${row}`, key))
+                        spreadsheet.runToSpreadsheet((auth) => spreadsheet.updateValue(auth, `${SPREADSHEET_ROW_TEST_KEY}${row}`, key))
 
                         // Update Help wanted ticket
-                        spreadsheet.runToSpreadsheet((auth) => spreadsheet.updateValue(auth, `N${row}`, `${process.env.MATTERMOST_JIRA_PROJECT_ISSUE_URL}/${issueNumber}`))
+                        spreadsheet.runToSpreadsheet((auth) => spreadsheet.updateValue(auth, `${SPREADSHEET_ROW_HW_TICKET}${row}`, `${MATTERMOST_JIRA_PROJECT_ISSUE_URL}/${issueNumber}`))
                     }
                 });
             }
